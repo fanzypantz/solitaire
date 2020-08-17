@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <Game/>
+    <Game />
   </div>
 </template>
 
@@ -11,11 +11,9 @@ import Game from "@/components/Game.vue";
 export default {
   name: "Home",
   components: {
-    Game
-  }
+    Game,
+  },
 };
 </script>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>
