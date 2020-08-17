@@ -137,6 +137,7 @@ export default class Game extends Vue {
 
 <style lang="scss" scoped>
 .container {
+  position: relative;
   display: flex;
   height: 100vh;
   width: 100vw;
@@ -149,7 +150,6 @@ export default class Game extends Vue {
 }
 
 .column {
-  position: relative;
   width: 200px;
   display: flex;
   flex-direction: column;

@@ -1,18 +1,20 @@
 <template>
-  <img
+  <div
     class="card"
-    :src="src"
     :style="{
       top: coordinates.y + 'px',
       left: coordinates.x + 'px',
-      transform: 'rotate3d(0, 1, 0, 180deg)',
+      transform: 'rotateY(180deg)',
     }"
     :class="{
       'display-card': cardType.display,
     }"
     draggable="true"
     @dragstart="startDrag($event)"
-  />
+  >
+    <img class="frontside" :src="src" alt="" />
+    <img class="backside" src="../assets/backside.png" alt="" />
+  </div>
 </template>
 
 <script lang="ts">
@@ -56,13 +58,27 @@ export default class Card extends Vue {
 <style lang="scss" scoped>
 .card {
   position: relative;
+  transform-style: preserve-3d;
+}
+
+.backside {
+  position: absolute;
   top: 0;
   left: 0;
   height: auto;
   width: 120px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  opacity: 0.99;
+}
+
+.frontside {
+  height: auto;
+  width: 120px;
+  backface-visibility: hidden;
 }
 
 .display-card {
-  transform: rotate3d(0, 1, 0, 0deg) !important;
+  transform: rotateY(0deg) !important;
 }
 </style>
