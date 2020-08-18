@@ -4,7 +4,8 @@
     :style="{
       top: coordinates.y + 'px',
       left: coordinates.x + 'px',
-      transform: 'rotateY(180deg)',
+      transform: transform,
+      position: positionState,
     }"
     :class="{
       'display-card': cardType.display,
@@ -35,12 +36,34 @@ interface CardType {
 export default class Card extends Vue {
   @Prop() public src: string | undefined;
   @Prop() public cardType: CardType | undefined;
-  public coordinates: Coordinates = { x: 0, y: 1 };
+  @Prop() public index: number | undefined;
+  @Prop() public attached = false;
+  public coordinates: Coordinates = { x: 0, y: 0 };
   // private cardType: CardType;
 
   @Emit()
   sendStartDrag() {
     return this.cardType;
+  }
+
+  mounted() {
+    this.coordinates = { x: 0, y: (this.index || 0) * 50 };
+  }
+
+  get transform() {
+    if (this.index !== undefined && this.index > 0) {
+      return "rotateY(180deg)";
+    } else {
+      return "rotateY(180deg)";
+    }
+  }
+
+  get positionState() {
+    if (this.index !== undefined && this.index > 0) {
+      return "absolute";
+    } else {
+      return "relative";
+    }
   }
 
   public startDrag(event: DragEvent): void {
@@ -70,12 +93,14 @@ export default class Card extends Vue {
   transform: rotateY(180deg);
   backface-visibility: hidden;
   opacity: 0.99;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
 .frontside {
   height: auto;
   width: 120px;
   backface-visibility: hidden;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
 .display-card {

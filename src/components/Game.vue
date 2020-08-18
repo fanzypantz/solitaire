@@ -9,10 +9,11 @@
     <div class="columns">
       <div class="column" v-for="(column, index) in board.columns" :key="index">
         <Card
-          v-for="card in column"
+          v-for="(card, index) in column"
           :key="card.pathShort"
           :src="card.pathLong"
           :cardType="card.cardType"
+          :index="index"
           @send-start-drag="receiveStartDrag"
         />
       </div>
@@ -47,6 +48,7 @@ export default class Game extends Vue {
     preview: null,
     columns: [[], [], [], [], [], [], []],
   };
+  private dragging: CardInterface | undefined;
 
   mounted() {
     console.log("game mounted");
@@ -54,6 +56,14 @@ export default class Game extends Vue {
     this.board.deck = Game.shuffleArray(this.board.deck);
     this.initiateBoard();
     console.log("this.board: ", this.board);
+  }
+
+  get positionState() {
+    if (this.dragging !== undefined) {
+      return "absolute";
+    } else {
+      return "relative";
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,13 +84,17 @@ export default class Game extends Vue {
     });
   }
 
+  private removeFirst(): void {
+    this.board.deck.shift();
+  }
+
   private initiateBoard(): void {
     for (let i = 0; i < 7; i++) {
       // Reverse the columns number so that it fills up from right to left
       for (let j = 7; j > i; j--) {
         this.board.columns[j - 1].push(this.board.deck[0]);
         // Remove the first card of the deck every time, this would be the top of the deck, index 0
-        this.board.deck.shift();
+        this.removeFirst();
         if (j === i + 1) {
           this.board.columns[j - 1][
             this.board.columns[j - 1].length - 1
@@ -88,6 +102,9 @@ export default class Game extends Vue {
         }
       }
     }
+    // Add the first preview card to the deck object
+    this.board.preview = this.board.deck[0];
+    this.removeFirst();
   }
 
   private static shuffleArray(
@@ -150,7 +167,9 @@ export default class Game extends Vue {
 }
 
 .column {
-  width: 200px;
+  margin: 0 20px;
+  position: relative;
+  width: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
