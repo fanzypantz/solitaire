@@ -6,6 +6,26 @@
     @dragenter.prevent
     @mousemove="onMouseMove($event)"
   >
+    <div class="top-container">
+      <div class="goals-container">
+        <div class="goals" v-for="(goal, index) in board.goals" :key="index">
+          <div class="goal-card" v-if="goal.length > 0">
+            <Card
+              v-for="(card, index) in goal"
+              :key="card.pathShort"
+              :src="card.pathLong"
+              :cardType="card.cardType"
+              :cardSlot="'goal'"
+              :index="index"
+              @send-start-drag="receiveStartDrag"
+            />
+          </div>
+          <div v-else>
+            <img class="backside" src="../assets/backside.png" alt="" />
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="columns">
       <div class="column" v-for="(column, index) in board.columns" :key="index">
         <Card
@@ -13,6 +33,7 @@
           :key="card.pathShort"
           :src="card.pathLong"
           :cardType="card.cardType"
+          :cardSlot="'column'"
           :index="index"
           @send-start-drag="receiveStartDrag"
         />
@@ -155,7 +176,6 @@ export default class Game extends Vue {
 <style lang="scss" scoped>
 .container {
   position: relative;
-  display: flex;
   height: 100vh;
   width: 100vw;
 }
@@ -173,5 +193,24 @@ export default class Game extends Vue {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.backside {
+  height: auto;
+  width: 120px;
+  backface-visibility: hidden;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.top-container {
+  height: 200px;
+}
+
+.goals-container {
+  display: flex;
+}
+
+.goals {
+  margin: 0 20px;
 }
 </style>

@@ -2,8 +2,8 @@
   <div
     class="card"
     :style="{
-      top: coordinates.y + 'px',
-      left: coordinates.x + 'px',
+      top: coordinateState.y + 'px',
+      left: coordinateState.x + 'px',
       transform: transform,
       position: positionState,
     }"
@@ -36,6 +36,7 @@ interface CardType {
 export default class Card extends Vue {
   @Prop() public src: string | undefined;
   @Prop() public cardType: CardType | undefined;
+  @Prop() public cardSlot: string | undefined;
   @Prop() public index: number | undefined;
   @Prop() public attached = false;
   public coordinates: Coordinates = { x: 0, y: 0 };
@@ -46,8 +47,18 @@ export default class Card extends Vue {
     return this.cardType;
   }
 
-  mounted() {
-    this.coordinates = { x: 0, y: (this.index || 0) * 50 };
+  // mounted() {
+  //   this.coordinates = { x: 0, y: (this.index || 0) * 50 };
+  // }
+
+  get coordinateState() {
+    if (this.cardSlot === "goal") {
+      return { x: 0, y: 0 };
+    } else if (this.cardSlot === "column") {
+      return { x: 0, y: (this.index || 0) * 50 };
+    } else {
+      return { x: 0, y: 0 };
+    }
   }
 
   get transform() {
