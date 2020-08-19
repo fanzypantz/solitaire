@@ -1,7 +1,7 @@
 <template>
   <div
     class="container"
-    @drop="onDrop($event)"
+    @mouseup="onDrop()"
     @dragover.prevent
     @dragenter.prevent
     @mousemove="onMouseMove($event)"
@@ -13,68 +13,94 @@
             <Card
               v-for="(card, index) in goal"
               :key="card.pathShort"
-              :src="card.pathLong"
-              :cardType="card.cardType"
+              :card="card"
               :cardSlot="'goal'"
               :index="index"
               @send-start-drag="receiveStartDrag"
             />
           </div>
           <div v-else>
-            <img class="backside" src="../assets/backside.png" alt="" />
+            <img
+              class="backside"
+              src="../assets/backside.png"
+              alt=""
+              draggable="false"
+            />
           </div>
         </div>
       </div>
+
       <div class="preview-container">
         <div class="preview-card" v-if="board.preview !== null">
           <Card
-            :src="board.preview.pathLong"
-            :cardType="board.preview.cardType"
+            :card="board.preview"
             :cardSlot="'preview'"
             :index="0"
             @send-start-drag="receiveStartDrag"
           />
         </div>
         <div v-else>
-          <img class="backside" src="../assets/backside.png" alt="" />
+          <img
+            class="backside"
+            src="../assets/backside.png"
+            alt=""
+            draggable="false"
+          />
         </div>
       </div>
+
       <div class="deck-container">
         <div class="goal-card" v-if="board.deck.length > 0">
           <Card
             v-for="(card, index) in board.deck"
-            :key="card.pathShort"
-            :src="card.pathLong"
-            :cardType="card.cardType"
+            :key="index"
+            :card="card"
             :cardSlot="'deck'"
             :index="index"
             @send-start-drag="receiveStartDrag"
           />
         </div>
         <div v-else>
-          <img class="backside" src="../assets/backside.png" alt="" />
+          <img
+            class="backside"
+            src="../assets/backside.png"
+            alt=""
+            draggable="false"
+          />
         </div>
       </div>
     </div>
+
     <div class="columns">
-      <div class="column" v-for="(column, index) in board.columns" :key="index">
+      <div
+        class="column"
+        v-for="(column, columnIndex) in board.columns"
+        :key="columnIndex"
+      >
         <Card
-          v-for="(card, index) in column"
-          :key="card.pathShort"
-          :src="card.pathLong"
-          :cardType="card.cardType"
+          v-for="(card, cardIndex) in column"
+          :key="cardIndex"
+          :card="card"
           :cardSlot="'column'"
-          :index="index"
+          :index="cardIndex"
+          :columnIndex="columnIndex"
           @send-start-drag="receiveStartDrag"
         />
       </div>
     </div>
+
+    <DragStack
+      v-if="dragging.length > 0"
+      :cards="dragging"
+      :coordinates="cursorCoordinates"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import Card from "@/components/Card.vue";
+import DragStack from "@/components/DragStack.vue";
 
 interface CardInterface {
   pathLong: string;
@@ -86,9 +112,17 @@ interface CardInterface {
   };
 }
 
+interface CardData {
+  cardSlot: string;
+  card: CardInterface;
+  columnIndex: number;
+  index: number;
+}
+
 @Component({
   components: {
     Card,
+    DragStack,
   },
 })
 export default class Game extends Vue {
@@ -99,18 +133,20 @@ export default class Game extends Vue {
     preview: null,
     columns: [[], [], [], [], [], [], []],
   };
-  private dragging: CardInterface | undefined;
+  private dragData: CardData | undefined;
+  private dragging: Array<CardInterface> = [];
+  private dragID: any;
+  private cursorCoordinates = { x: 0, y: 0 };
 
   mounted() {
     console.log("game mounted");
     this.importAll(require.context("../assets/cards/", true, /\.png$/));
     this.board.deck = Game.shuffleArray(this.board.deck);
     this.initiateBoard();
-    console.log("this.board: ", this.board);
   }
 
   get positionState() {
-    if (this.dragging !== undefined) {
+    if (this.dragging.length === 0) {
       return "absolute";
     } else {
       return "relative";
@@ -137,6 +173,12 @@ export default class Game extends Vue {
 
   private removeFirst(): void {
     this.board.deck.shift();
+  }
+
+  private removeAtIndex(type: string, column: number, index: number) {
+    if (type === "column") {
+      this.board.columns[column].splice(index, 1);
+    }
   }
 
   private initiateBoard(): void {
@@ -177,6 +219,7 @@ export default class Game extends Vue {
     return array;
   }
 
+  // TODO: make this a computed property instead
   private static parseNumber(cardString: string): number {
     // Parse the number so we can deal with numbers only in the code
     switch (cardString) {
@@ -193,20 +236,47 @@ export default class Game extends Vue {
     }
   }
 
-  public receiveStartDrag(cardType: object): void {
-    console.log("test  emit: ", cardType);
+  private dragAnimation(): void {
+    // Request the new frame
+
+    // TODO: ADD LERP ANIMATION HERE
+    this.dragID = requestAnimationFrame(this.dragAnimation);
   }
 
-  public onDrop(event: DragEvent): void {
-    if (event.dataTransfer === null) {
-      return;
+  public receiveStartDrag(dragData: CardData): void {
+    this.dragData = dragData;
+    this.dragging.push(this.dragData.card);
+    this.removeAtIndex(
+      this.dragData.cardSlot,
+      this.dragData.columnIndex,
+      this.dragData.index
+    );
+    this.dragID = requestAnimationFrame(this.dragAnimation);
+  }
+
+  public onDrop(): void {
+    if (this.dragData !== undefined) {
+      // Stop animation
+      cancelAnimationFrame(this.dragID);
+      // Add the dragged cards back
+      this.board.columns[this.dragData.columnIndex] = [
+        ...this.board.columns[this.dragData.columnIndex],
+        ...this.dragging,
+      ];
+      // Clear the drag data
+      this.dragging = [];
+      this.dragData = undefined;
     }
-    const cardID = JSON.parse(event.dataTransfer.getData("text/plain"));
-    console.log("cardid: ", cardID);
   }
 
   public onMouseMove(event: MouseEvent): void {
     // console.log("test: ");
+    if (this.dragging.length > 0) {
+      this.cursorCoordinates = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+    }
   }
 }
 </script>

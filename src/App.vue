@@ -17,6 +17,10 @@
   color: #2c3e50;
 }
 
+#app * {
+  user-select: none;
+}
+
 #nav {
   padding: 30px;
 }

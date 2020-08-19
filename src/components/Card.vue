@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="card !== undefined"
     class="card"
     :style="{
       top: coordinateState.y + 'px',
@@ -8,14 +9,13 @@
       position: positionState,
     }"
     :class="{
-      'display-card': cardType.display,
+      'display-card': card.cardType.display,
     }"
-    draggable="true"
     @dragstart="startDrag($event)"
   >
     <img
       class="frontside"
-      :src="src"
+      :src="card.pathLong"
       alt=""
       :style="{
         boxShadow: shadowState,
@@ -40,6 +40,16 @@ interface Coordinates {
   y: number;
 }
 
+interface CardInterface {
+  pathLong: string;
+  pathShort: string;
+  cardType: {
+    number: number;
+    type: string;
+    display: boolean;
+  };
+}
+
 interface CardType {
   number: number;
   type: string;
@@ -48,17 +58,21 @@ interface CardType {
 
 @Component
 export default class Card extends Vue {
-  @Prop() public src: string | undefined;
-  @Prop() public cardType: CardType | undefined;
+  @Prop() public card: CardInterface | undefined;
   @Prop() public cardSlot: string | undefined;
   @Prop() public index: number | undefined;
-  @Prop() public attached = false;
-  public coordinates: Coordinates = { x: 0, y: 0 };
+  @Prop() public columnIndex: number | undefined;
+  public attached = false;
   // private cardType: CardType;
 
   @Emit()
   sendStartDrag() {
-    return this.cardType;
+    return {
+      cardSlot: this.cardSlot,
+      card: this.card,
+      index: this.index,
+      columnIndex: this.columnIndex,
+    };
   }
 
   // mounted() {
@@ -99,13 +113,39 @@ export default class Card extends Vue {
     }
   }
 
+  get draggableState() {
+    if (
+      this.cardSlot === "goal" ||
+      (this.card !== undefined && !this.card.cardType.display)
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   public startDrag(event: DragEvent): void {
-    if (this.cardType === undefined || event.dataTransfer === null) {
+    if (
+      this.card === undefined ||
+      event.dataTransfer === null ||
+      this.cardSlot === "goal" ||
+      !this.card.cardType.display
+    ) {
+      event.preventDefault();
       return;
     }
+    console.log("event: ", event);
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", JSON.stringify(this.cardType));
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({
+        cardSlot: this.cardSlot,
+        card: this.card,
+        index: this.index,
+        columnIndex: this.columnIndex,
+      })
+    );
     this.sendStartDrag();
   }
 }
