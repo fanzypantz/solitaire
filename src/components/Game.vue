@@ -25,6 +25,36 @@
           </div>
         </div>
       </div>
+      <div class="preview-container">
+        <div class="preview-card" v-if="board.preview !== null">
+          <Card
+            :src="board.preview.pathLong"
+            :cardType="board.preview.cardType"
+            :cardSlot="'preview'"
+            :index="0"
+            @send-start-drag="receiveStartDrag"
+          />
+        </div>
+        <div v-else>
+          <img class="backside" src="../assets/backside.png" alt="" />
+        </div>
+      </div>
+      <div class="deck-container">
+        <div class="goal-card" v-if="board.deck.length > 0">
+          <Card
+            v-for="(card, index) in board.deck"
+            :key="card.pathShort"
+            :src="card.pathLong"
+            :cardType="card.cardType"
+            :cardSlot="'deck'"
+            :index="index"
+            @send-start-drag="receiveStartDrag"
+          />
+        </div>
+        <div v-else>
+          <img class="backside" src="../assets/backside.png" alt="" />
+        </div>
+      </div>
     </div>
     <div class="columns">
       <div class="column" v-for="(column, index) in board.columns" :key="index">
@@ -125,6 +155,14 @@ export default class Game extends Vue {
     }
     // Add the first preview card to the deck object
     this.board.preview = this.board.deck[0];
+    this.board.preview.cardType.display = true;
+    // TEST CODE
+    // const test = this.board.deck[0];
+    // test.cardType.display = true;
+    // this.board.goals[0].push(test);
+    // this.board.goals[0].push(test);
+    // this.board.goals[0].push(test);
+    // this.board.goals[0].push(test);
     this.removeFirst();
   }
 
@@ -204,6 +242,7 @@ export default class Game extends Vue {
 
 .top-container {
   height: 200px;
+  display: flex;
 }
 
 .goals-container {
@@ -211,6 +250,16 @@ export default class Game extends Vue {
 }
 
 .goals {
+  margin: 0 20px;
+  position: relative;
+}
+
+.preview-container {
+  margin: 0 20px 0 180px;
+}
+
+.deck-container {
+  position: relative;
   margin: 0 20px;
 }
 </style>

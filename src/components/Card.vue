@@ -13,8 +13,22 @@
     draggable="true"
     @dragstart="startDrag($event)"
   >
-    <img class="frontside" :src="src" alt="" />
-    <img class="backside" src="../assets/backside.png" alt="" />
+    <img
+      class="frontside"
+      :src="src"
+      alt=""
+      :style="{
+        boxShadow: shadowState,
+      }"
+    />
+    <img
+      class="backside"
+      src="../assets/backside.png"
+      alt=""
+      :style="{
+        boxShadow: shadowState,
+      }"
+    />
   </div>
 </template>
 
@@ -77,6 +91,14 @@ export default class Card extends Vue {
     }
   }
 
+  get shadowState() {
+    if (this.cardSlot === "deck" && this.index !== 0) {
+      return "";
+    } else {
+      return "0 0 6px rgba(0, 0, 0, 0.4)";
+    }
+  }
+
   public startDrag(event: DragEvent): void {
     if (this.cardType === undefined || event.dataTransfer === null) {
       return;
@@ -104,14 +126,12 @@ export default class Card extends Vue {
   transform: rotateY(180deg);
   backface-visibility: hidden;
   opacity: 0.99;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
 .frontside {
   height: auto;
   width: 120px;
   backface-visibility: hidden;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
 .display-card {
