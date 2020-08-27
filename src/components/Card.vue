@@ -134,7 +134,6 @@ export default class Card extends Vue {
       event.preventDefault();
       return;
     }
-    console.log("event: ", event);
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData(

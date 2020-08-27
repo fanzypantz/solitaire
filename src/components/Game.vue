@@ -8,7 +8,12 @@
   >
     <div class="top-container">
       <div class="goals-container">
-        <div class="goals" v-for="(goal, index) in board.goals" :key="index">
+        <div
+          class="goals"
+          v-for="(goal, index) in board.goals"
+          :key="index"
+          @mouseover="onMouseOver($event, 'goal', index)"
+        >
           <div class="goal-card" v-if="goal.length > 0">
             <Card
               v-for="(card, index) in goal"
@@ -31,7 +36,11 @@
       </div>
 
       <div class="preview-container">
-        <div class="preview-card" v-if="board.preview !== null">
+        <div
+          class="preview-card"
+          v-if="board.preview !== null"
+          @mouseover="onMouseOver($event, 'preview')"
+        >
           <Card
             :card="board.preview"
             :cardSlot="'preview'"
@@ -50,7 +59,11 @@
       </div>
 
       <div class="deck-container">
-        <div class="goal-card" v-if="board.deck.length > 0">
+        <div
+          class="goal-card"
+          v-if="board.deck.length > 0"
+          @mouseover="onMouseOver($event, 'deck')"
+        >
           <Card
             v-for="(card, index) in board.deck"
             :key="index"
@@ -76,6 +89,7 @@
         class="column"
         v-for="(column, columnIndex) in board.columns"
         :key="columnIndex"
+        @mouseover="onMouseOver($event, 'column', columnIndex)"
       >
         <Card
           v-for="(card, cardIndex) in column"
@@ -119,6 +133,11 @@ interface CardData {
   index: number;
 }
 
+interface TargetData {
+  type: string;
+  index: number;
+}
+
 @Component({
   components: {
     Card,
@@ -135,8 +154,11 @@ export default class Game extends Vue {
   };
   private dragData: CardData | undefined;
   private dragging: Array<CardInterface> = [];
-  private dragID: any;
   private cursorCoordinates = { x: 0, y: 0 };
+  private currentTarget: TargetData = {
+    type: "",
+    index: -1,
+  };
 
   mounted() {
     console.log("game mounted");
@@ -176,8 +198,15 @@ export default class Game extends Vue {
   }
 
   private removeAtIndex(type: string, column: number, index: number) {
-    if (type === "column") {
-      this.board.columns[column].splice(index, 1);
+    switch (type) {
+      case "column":
+        this.board.columns[column].splice(index, 1);
+        break;
+      case "preview":
+        this.board.preview = null;
+        break;
+      default:
+        break;
     }
   }
 
@@ -236,13 +265,6 @@ export default class Game extends Vue {
     }
   }
 
-  private dragAnimation(): void {
-    // Request the new frame
-
-    // TODO: ADD LERP ANIMATION HERE
-    this.dragID = requestAnimationFrame(this.dragAnimation);
-  }
-
   public receiveStartDrag(dragData: CardData): void {
     this.dragData = dragData;
     this.dragging.push(this.dragData.card);
@@ -251,16 +273,68 @@ export default class Game extends Vue {
       this.dragData.columnIndex,
       this.dragData.index
     );
-    this.dragID = requestAnimationFrame(this.dragAnimation);
   }
 
   public onDrop(): void {
+    if (this.dragData === undefined) {
+      return;
+    }
+    if (this.canDrop()) {
+      switch (this.currentTarget.type) {
+        case "column":
+          this.addCardsColumn(this.currentTarget.index);
+          break;
+        default:
+          break;
+      }
+    } else {
+      this.addCardsColumn(this.dragData.columnIndex);
+    }
+  }
+
+  public onMouseOver(event: DragEvent, type: string, index?: number): void {
+    this.currentTarget = {
+      type: type,
+      index: index,
+    };
+  }
+
+  public onMouseMove(event: MouseEvent): void {
+    this.cursorCoordinates = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  private canDrop(): boolean {
+    if (this.dragData === undefined) {
+      return false;
+    }
+    switch (this.currentTarget.type) {
+      case "column":
+        return this.checkColumn(this.dragData.card);
+      default:
+        return false;
+    }
+  }
+
+  private checkColumn(card: CardInterface): boolean {
+    const currentColumn = this.board.columns[this.currentTarget.index];
+    const lastCard = currentColumn[currentColumn.length - 1];
+    if (lastCard.cardType.number - 1 === card.cardType.number) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // private checkType(card1, card2): boolean {}
+
+  private addCardsColumn(index: number): void {
     if (this.dragData !== undefined) {
-      // Stop animation
-      cancelAnimationFrame(this.dragID);
       // Add the dragged cards back
-      this.board.columns[this.dragData.columnIndex] = [
-        ...this.board.columns[this.dragData.columnIndex],
+      this.board.columns[index] = [
+        ...this.board.columns[index],
         ...this.dragging,
       ];
       // Clear the drag data
@@ -269,14 +343,8 @@ export default class Game extends Vue {
     }
   }
 
-  public onMouseMove(event: MouseEvent): void {
-    // console.log("test: ");
-    if (this.dragging.length > 0) {
-      this.cursorCoordinates = {
-        x: event.clientX,
-        y: event.clientY,
-      };
-    }
+  private removeOld(): void {
+    // test
   }
 }
 </script>

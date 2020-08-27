@@ -35,9 +35,9 @@ export default class DragStack extends Vue {
   @Prop() public cards: Array<CardType> | undefined;
   @Prop() public coordinates: object | undefined;
 
-  mounted() {
-    console.log("cards: ", this.cards);
-  }
+  // mounted() {
+  //   console.log("cards: ", this.cards);
+  // }
 }
 </script>
 
@@ -45,6 +45,7 @@ export default class DragStack extends Vue {
 .drag-stack-container {
   position: fixed;
   z-index: 100;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50px);
+  pointer-events: none;
 }
 </style>
