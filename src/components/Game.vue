@@ -161,7 +161,6 @@ export default class Game extends Vue {
   };
 
   mounted() {
-    console.log("game mounted");
     this.importAll(require.context("../assets/cards/", true, /\.png$/));
     this.board.deck = Game.shuffleArray(this.board.deck);
     this.initiateBoard();
@@ -259,9 +258,15 @@ export default class Game extends Vue {
   }
 
   public onMouseOver(event: DragEvent, type: string, index?: number): void {
+    let i;
+    if (index !== undefined) {
+      i = index;
+    } else {
+      i = -1;
+    }
     this.currentTarget = {
       type: type,
-      index: index,
+      index: i,
     };
   }
 
@@ -273,7 +278,6 @@ export default class Game extends Vue {
   }
 
   public receiveStartDrag(dragData: CardData): void {
-    console.log("dragData: ", dragData);
     this.dragData = dragData;
     switch (this.dragData.cardSlot) {
       case "column":
@@ -287,7 +291,6 @@ export default class Game extends Vue {
         ];
         break;
       case "preview":
-        console.log("start drag preview: ");
         this.dragging.push(this.dragData.card);
         this.board.preview = null;
         break;
@@ -316,6 +319,7 @@ export default class Game extends Vue {
         Game.checkType(card.cardType.type, lastCard.cardType.type)
       );
     }
+    return false;
   }
 
   private checkGoal(card: CardInterface): boolean {
@@ -355,7 +359,6 @@ export default class Game extends Vue {
     // the new array location.
     // else put them back from where they were found
     if (this.canDrop()) {
-      console.log("this.currentTarget: ", this.currentTarget);
       switch (this.currentTarget.type) {
         case "column":
           this.addCardsColumn(this.currentTarget.index);
@@ -376,7 +379,6 @@ export default class Game extends Vue {
           this.addCardsColumn(this.dragData.columnIndex);
           break;
         case "preview":
-          console.log("preview drop: ", this.dragData.card);
           this.board.preview = this.dragData.card;
           break;
         default:
