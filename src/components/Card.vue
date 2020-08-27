@@ -82,7 +82,7 @@ export default class Card extends Vue {
   get coordinateState() {
     if (this.cardSlot === "goal") {
       return { x: 0, y: 0 };
-    } else if (this.cardSlot === "column") {
+    } else if (this.cardSlot === "column" || this.cardSlot === "dragStack") {
       return { x: 0, y: (this.index || 0) * 50 };
     } else {
       return { x: 0, y: 0 };

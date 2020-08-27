@@ -197,16 +197,19 @@ export default class Game extends Vue {
     this.board.deck.shift();
   }
 
-  private removeAtIndex(type: string, column: number, index: number) {
+  private removeAtIndex(
+    type: string,
+    column: number,
+    index: number
+  ): Array<CardInterface> {
     switch (type) {
       case "column":
-        this.board.columns[column].splice(index, 1);
-        break;
+        return this.board.columns[column].splice(index);
       case "preview":
         this.board.preview = null;
-        break;
+        return [];
       default:
-        break;
+        return [];
     }
   }
 
@@ -265,33 +268,6 @@ export default class Game extends Vue {
     }
   }
 
-  public receiveStartDrag(dragData: CardData): void {
-    this.dragData = dragData;
-    this.dragging.push(this.dragData.card);
-    this.removeAtIndex(
-      this.dragData.cardSlot,
-      this.dragData.columnIndex,
-      this.dragData.index
-    );
-  }
-
-  public onDrop(): void {
-    if (this.dragData === undefined) {
-      return;
-    }
-    if (this.canDrop()) {
-      switch (this.currentTarget.type) {
-        case "column":
-          this.addCardsColumn(this.currentTarget.index);
-          break;
-        default:
-          break;
-      }
-    } else {
-      this.addCardsColumn(this.dragData.columnIndex);
-    }
-  }
-
   public onMouseOver(event: DragEvent, type: string, index?: number): void {
     this.currentTarget = {
       type: type,
@@ -306,6 +282,55 @@ export default class Game extends Vue {
     };
   }
 
+  public receiveStartDrag(dragData: CardData): void {
+    console.log("dragData: ", dragData);
+    this.dragData = dragData;
+    switch (this.dragData.cardSlot) {
+      case "column":
+        this.dragging = [
+          ...this.dragging,
+          ...this.removeAtIndex(
+            this.dragData.cardSlot,
+            this.dragData.columnIndex,
+            this.dragData.index
+          ),
+        ];
+        break;
+      default:
+        this.dragging.push(this.dragData.card);
+        this.removeAtIndex(
+          this.dragData.cardSlot,
+          this.dragData.columnIndex,
+          this.dragData.index
+        );
+        break;
+    }
+  }
+
+  private checkColumn(card: CardInterface): boolean {
+    const currentColumn = this.board.columns[this.currentTarget.index];
+    const lastCard = currentColumn[currentColumn.length - 1];
+    return (
+      lastCard.cardType.number - 1 === card.cardType.number &&
+      Game.checkType(card.cardType.type, lastCard.cardType.type)
+    );
+  }
+
+  private checkGoal(card: CardInterface): boolean {
+    const currentGoal = this.board.goals[this.currentTarget.index];
+    // If the current goal is empty any card type can be added
+    if (currentGoal.length > 0) {
+      const lastCard = currentGoal[currentGoal.length - 1];
+      // If the card is of the same type and one card higher then it can be added
+      return (
+        lastCard.cardType.number + 1 === card.cardType.number &&
+        card.cardType.type === lastCard.cardType.type
+      );
+    } else {
+      return true;
+    }
+  }
+
   private canDrop(): boolean {
     if (this.dragData === undefined) {
       return false;
@@ -313,22 +338,63 @@ export default class Game extends Vue {
     switch (this.currentTarget.type) {
       case "column":
         return this.checkColumn(this.dragData.card);
+      case "goal":
+        return this.checkGoal(this.dragData.card);
       default:
         return false;
     }
   }
 
-  private checkColumn(card: CardInterface): boolean {
-    const currentColumn = this.board.columns[this.currentTarget.index];
-    const lastCard = currentColumn[currentColumn.length - 1];
-    if (lastCard.cardType.number - 1 === card.cardType.number) {
-      return true;
-    } else {
-      return false;
+  public onDrop(): void {
+    if (this.dragData === undefined) {
+      return;
     }
+    // Check if you can drop the card or not, if you can drop it, you move the currently dragged cards into
+    // the new array location.
+    // else put them back from where they were found
+    if (this.canDrop()) {
+      console.log("this.currentTarget: ", this.currentTarget);
+      switch (this.currentTarget.type) {
+        case "column":
+          this.addCardsColumn(this.currentTarget.index);
+          // Every time you move anything out of the column check if there is a card to be revealed under it
+
+          this.checkReveal(this.dragData.columnIndex);
+
+          break;
+        case "goal":
+          this.addCardsGoal(this.currentTarget.index);
+          break;
+        default:
+          break;
+      }
+    } else {
+      switch (this.dragData.cardSlot) {
+        case "column":
+          this.addCardsColumn(this.dragData.columnIndex);
+          break;
+        case "preview":
+          this.board.preview = this.dragData.card;
+          break;
+        default:
+          break;
+      }
+    }
+    // Always clear the drag data for the next drag event
+    this.clearDragData();
   }
 
-  // private checkType(card1, card2): boolean {}
+  private static checkType(card1: string, card2: string): boolean {
+    if (card1 === card2) {
+      return false;
+    }
+    return !(
+      (card1 === "diamonds" && card2 === "hearts") ||
+      (card1 === "hearts" && card2 === "diamonds") ||
+      (card1 === "spades" && card2 === "clubs") ||
+      (card1 === "clubs" && card2 === "spades")
+    );
+  }
 
   private addCardsColumn(index: number): void {
     if (this.dragData !== undefined) {
@@ -337,14 +403,31 @@ export default class Game extends Vue {
         ...this.board.columns[index],
         ...this.dragging,
       ];
-      // Clear the drag data
-      this.dragging = [];
-      this.dragData = undefined;
     }
   }
 
-  private removeOld(): void {
-    // test
+  private addCardsGoal(index: number): void {
+    if (this.dragData !== undefined && this.dragging.length === 1) {
+      this.board.goals[index].push(this.dragging[0]);
+    }
+  }
+
+  private clearDragData(): void {
+    // Clear the drag data
+    this.dragging = [];
+    this.dragData = undefined;
+  }
+
+  private checkReveal(index: number): void {
+    const currentColumn = this.board.columns[index];
+    console.log("checking reveal: ", currentColumn[currentColumn.length - 1]);
+    if (currentColumn[currentColumn.length - 1].cardType.display === false) {
+      this.revealCard(index, currentColumn.length - 1);
+    }
+  }
+
+  private revealCard(columnIndex: number, cardIndex: number): void {
+    this.board.columns[columnIndex][cardIndex].cardType.display = true;
   }
 }
 </script>
