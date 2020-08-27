@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <div class="deck-container">
+      <div class="deck-container" @click="nextCard()">
         <div
           class="goal-card"
           v-if="board.deck.length > 0"
@@ -227,17 +227,7 @@ export default class Game extends Vue {
         }
       }
     }
-    // Add the first preview card to the deck object
-    this.board.preview = this.board.deck[0];
-    this.board.preview.cardType.display = true;
-    // TEST CODE
-    // const test = this.board.deck[0];
-    // test.cardType.display = true;
-    // this.board.goals[0].push(test);
-    // this.board.goals[0].push(test);
-    // this.board.goals[0].push(test);
-    // this.board.goals[0].push(test);
-    this.removeFirst();
+    this.previewNext();
   }
 
   private static shuffleArray(
@@ -296,6 +286,11 @@ export default class Game extends Vue {
           ),
         ];
         break;
+      case "preview":
+        console.log("start drag preview: ");
+        this.dragging.push(this.dragData.card);
+        this.board.preview = null;
+        break;
       default:
         this.dragging.push(this.dragData.card);
         this.removeAtIndex(
@@ -309,11 +304,18 @@ export default class Game extends Vue {
 
   private checkColumn(card: CardInterface): boolean {
     const currentColumn = this.board.columns[this.currentTarget.index];
-    const lastCard = currentColumn[currentColumn.length - 1];
-    return (
-      lastCard.cardType.number - 1 === card.cardType.number &&
-      Game.checkType(card.cardType.type, lastCard.cardType.type)
-    );
+    // Check if a king can be put in an empty column
+    if (currentColumn.length === 0) {
+      if (card.cardType.number === 13) {
+        return true;
+      }
+    } else {
+      const lastCard = currentColumn[currentColumn.length - 1];
+      return (
+        lastCard.cardType.number - 1 === card.cardType.number &&
+        Game.checkType(card.cardType.type, lastCard.cardType.type)
+      );
+    }
   }
 
   private checkGoal(card: CardInterface): boolean {
@@ -357,10 +359,6 @@ export default class Game extends Vue {
       switch (this.currentTarget.type) {
         case "column":
           this.addCardsColumn(this.currentTarget.index);
-          // Every time you move anything out of the column check if there is a card to be revealed under it
-
-          this.checkReveal(this.dragData.columnIndex);
-
           break;
         case "goal":
           this.addCardsGoal(this.currentTarget.index);
@@ -368,17 +366,26 @@ export default class Game extends Vue {
         default:
           break;
       }
+      // if the source was the preview, draw a new card
+      if (this.dragData.cardSlot === "preview") {
+        this.previewNext();
+      }
     } else {
       switch (this.dragData.cardSlot) {
         case "column":
           this.addCardsColumn(this.dragData.columnIndex);
           break;
         case "preview":
+          console.log("preview drop: ", this.dragData.card);
           this.board.preview = this.dragData.card;
           break;
         default:
           break;
       }
+    }
+    // Every time you move anything out of the column check if there is a card to be revealed under it
+    if (this.dragData.cardSlot === "column") {
+      this.checkReveal(this.dragData.columnIndex);
     }
     // Always clear the drag data for the next drag event
     this.clearDragData();
@@ -420,7 +427,10 @@ export default class Game extends Vue {
 
   private checkReveal(index: number): void {
     const currentColumn = this.board.columns[index];
-    console.log("checking reveal: ", currentColumn[currentColumn.length - 1]);
+    // if the length is 0 there is no card to reveal
+    if (currentColumn.length === 0) {
+      return;
+    }
     if (currentColumn[currentColumn.length - 1].cardType.display === false) {
       this.revealCard(index, currentColumn.length - 1);
     }
@@ -428,6 +438,23 @@ export default class Game extends Vue {
 
   private revealCard(columnIndex: number, cardIndex: number): void {
     this.board.columns[columnIndex][cardIndex].cardType.display = true;
+  }
+
+  private previewNext(): void {
+    // Add the first preview card to the deck object
+    if (this.board.deck.length > 0) {
+      this.board.preview = this.board.deck[0];
+      this.board.preview.cardType.display = true;
+      this.removeFirst();
+    }
+  }
+
+  public nextCard(): void {
+    if (this.board.deck.length > 0) {
+      this.board.preview.cardType.display = false;
+      this.board.deck.push(this.board.preview);
+      this.previewNext();
+    }
   }
 }
 </script>
